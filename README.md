@@ -1,9 +1,23 @@
-# **🚀 FastAPI for Machine Learning: End-to-End** 
+# **🚀 FastAPI for Machine Learning: End-to-End**
 
 Welcome to the official repository for the FastAPI for Machine Learning course! This comprehensive 20–22 hour course walks you through building powerful, production-ready APIs using FastAPI, with a special focus on deploying Machine Learning models. You’ll learn from API basics to deployment using modern DevOps practices.
 
 ---
 
+## FASTAPI Architecture Daigram:
+
+![1784133473840](image/README/1784133473840.png)
+
+---
+## HTTP Methods
+
+![1784134176578](image/README/1784134176578.png)
+
+## HTTP Methods Error Code
+
+![1784134209368](image/README/1784134209368.png)
+
+---
 ## 📚 Course Overview
 
 This course is designed to help **data scientists**, **backend developers**, and **AI engineers** build real-world ML-powered APIs using **FastAPI** and deploy them efficiently. We go beyond the basics by incorporating **Redis**, **Docker**, **JWT**, **Prometheus**, **Grafana**, and **Render**.
