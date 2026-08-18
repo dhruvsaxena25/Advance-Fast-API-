@@ -222,3 +222,92 @@ Content-Type: application/json
 1) Often includes a path parameter to identify which resource to delete.
 2) No request body is usually needed.
 3) Should return a success message or appropriate error.
+
+
+# **Middleware**
+- Middleware in an API is code that sits between the incoming request and the final route handler (or between the handler and the outgoing response), intercepting and processing requests/responses as they pass through.
+- Middleware is a function or class that intercepts incoming requestsbefore they reach the route handler, or outgoing responsesafter the route handler has processed the request.
+- Middleware is a function that runs before or after each requestin the application
+- Middleware runs in a chain, one after another, in the order they are registered
+- Middleware can modify:
+  - The request before it's passed to the endpoint○
+  - The responsereturned by the endpoint
+
+## **How it Works:**
+Think of it as a pipeline
+  - Request → Middleware 1 → Middleware 2 → Middleware 3 → Route Handler → Middleware 4 → Middleware 5 → Response
+
+## **Each piece of middleware can:**
+- Inspect or modify the request/response
+- Run some logic (logging, checking auth, etc.)
+- Either pass control to the next middleware (next()) or stop the chain and send a response immediately (e.g., reject an unauthorized request)
+
+## **Built-inMiddleware**
+- CORS Middleware
+- GZip Middleware
+- HTTPSRedirectMiddleware
+
+# **Dependency Injection (DI)**
+
+- Dependency Injection (DI) is a design pattern where a piece of code declares what it needs to do its job, and something external (a "framework" or "container") provides those things for it — rather than the code creating or fetching its dependencies itself.
+- FastAPI uses the Dependsclass to resolve and inject dependencies automatically
+
+## **The core idea, without any framework**
+
+- **Without DI** — the function reaches out and creates its own dependency:
+```
+class DatabaseConnection:
+    def __init__(self):
+        self.conn = connect_to_db("prod-server")
+
+def get_user(user_id):
+    db = DatabaseConnection()  # created internally — tightly coupled
+    return db.query(f"SELECT * FROM users WHERE id={user_id}")
+```
+- Problem: get_user is now stuck with a real DB connection every time. You can't easily test it, swap in a mock, or reuse it with a different config.
+
+- **With DI** — the dependency is handed in from outside:
+
+```
+def get_user(user_id, db: DatabaseConnection):  # db is "injected"
+    return db.query(f"SELECT * FROM users WHERE id={user_id}")
+
+# caller decides what to pass in
+prod_db = DatabaseConnection("prod-server")
+get_user(123, prod_db)
+
+test_db = FakeDatabaseConnection()  # swap in a mock for testing
+get_user(123, test_db)
+```
+- Now get_user doesn't care how the database connection was built — it just receives one. This is the whole pattern in a nutshell: declare what you need, let something else supply it.
+
+## **Why it's useful**
+- Testability — swap real dependencies for mocks/fakes without touching the function's code
+- Decoupling — your logic doesn't know or care how a dependency is constructed
+- Reusability — same function works with different implementations (prod DB, test DB, staging DB)
+- Centralized control — configuration/setup logic lives in one place instead of scattered everywhere
+
+## **Common Use Cases of Dependency Injection:**
+1. Database Connections
+2. Configuration Management
+3. User Authentication
+4. Background Task Setup
+
+# Difference B/W Middleware and DI
+**Here's a comparison table:**
+
+| Aspect | Middleware | Dependency Injection (DI) |
+|---|---|---|
+| **Scope** | Applies globally to every request (or every request matching a broad pattern) | Applies only to the specific routes where it's declared |
+| **When it runs** | Before FastAPI even matches/routes the request (and after, on the way out) | After routing, right before the route handler executes |
+| **Access to route info** | No — doesn't know path params, query params, or route-specific context | Yes — can access path params, query params, headers, body, etc. |
+| **Can inject values into handler** | No — can't pass data directly into your route function's arguments | Yes — return value is injected as a function argument |
+| **Chaining** | Stacks in "onion" layers (order matters, wraps `call_next`) | Can depend on other dependencies, forming a resolution tree |
+| **Typical use cases** | Logging, CORS, gzip compression, timing headers, global rate limiting | Auth checks, DB sessions, current-user lookup, shared validation logic |
+| **Testability / overriding** | Harder to swap out per-test; it's baked into the app pipeline | Easy — FastAPI supports `dependency_overrides` for clean test mocking |
+| **Error handling** | Runs outside FastAPI's exception handler flow (can miss handler exceptions) | Runs within the normal request-handling flow, exceptions propagate normally |
+| **Setup/cleanup pattern** | Manual, via code before/after `call_next()` | Built-in via `yield` (code after `yield` runs as cleanup) |
+| **Implementation style** | `@app.middleware("http")` function or `add_middleware(...)` class | Function or class used with `Depends(...)` |
+| **Best for** | Cross-cutting concerns that apply to the *entire app* regardless of route | Route-specific logic that needs context or returns a usable value |
+
+**Rule of thumb:** if it applies to *everything* and doesn't need route-specific data → middleware. If it's specific to certain routes and you want the result handed to your function → DI.
